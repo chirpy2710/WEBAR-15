@@ -1,96 +1,25 @@
-<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>WebXR Plane AR</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <head>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="./components.js"></script>
 
-  <!-- Use latest stable -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <style>
+      #overlay {
+	position: fixed;
+	top: 100px;
+	padding: 10px;
+	z-index: 1001;
+      }
+    </style>
+  </head>
+  <body>
+    <a-scene webxr="requiredFeatures:hit-test; optionalFeatures:dom-overlay; referenceSpaceType:local; overlayElement:#overlay" background="transparent: true"> 
+      <a-box id="box" width="0.1" height="0.1" depth="0.1" color="#0000FF" visible="false">v</a-box>
+      <a-entity ar-reticle geometry="primitive: ring; radiusInner: 0.15; radiusOuter: 0.2" rotation="-90 0 0" visible="false"></a-entity>
+    </a-scene>
 
-  <style>
-    body { margin:0; overflow:hidden; }
-  </style>
-</head>
-
-<body>
-
-<a-scene
-  vr-mode-ui="enabled: true"
-  webxr="requiredFeatures: hit-test, local-floor"
-  renderer="colorManagement: true; logarithmicDepthBuffer: true">
-
-  <a-camera></a-camera>
-
-  <!-- Reticle -->
-  <a-entity id="reticle"
-    geometry="primitive:ring; radiusInner:0.05; radiusOuter:0.06"
-    material="color:green; shader:flat"
-    rotation="-90 0 0"
-    visible="false">
-  </a-entity>
-
-  <!-- Model (Test box first) -->
-  <a-box id="box"
-    color="#4CC3D9"
-    depth="0.3"
-    height="0.3"
-    width="0.3"
-    visible="false">
-  </a-box>
-
-</a-scene>
-
-<script>
-const scene = document.querySelector("a-scene");
-const reticle = document.querySelector("#reticle");
-const box = document.querySelector("#box");
-
-let hitTestSource = null;
-let referenceSpace = null;
-
-scene.addEventListener("enter-vr", async () => {
-
-  if (!scene.is("ar-mode")) return;
-
-  const session = scene.renderer.xr.getSession();
-
-  const viewerSpace = await session.requestReferenceSpace("viewer");
-  referenceSpace = await session.requestReferenceSpace("local-floor");
-
-  hitTestSource = await session.requestHitTestSource({
-    space: viewerSpace
-  });
-
-  session.requestAnimationFrame(onXRFrame);
-});
-
-function onXRFrame(t, frame) {
-  const session = frame.session;
-  session.requestAnimationFrame(onXRFrame);
-
-  const hitTestResults = frame.getHitTestResults(hitTestSource);
-
-  if (hitTestResults.length > 0) {
-    const hit = hitTestResults[0];
-    const pose = hit.getPose(referenceSpace);
-
-    reticle.setAttribute("visible", true);
-    reticle.setAttribute("position", {
-      x: pose.transform.position.x,
-      y: pose.transform.position.y,
-      z: pose.transform.position.z
-    });
-  }
-}
-
-scene.addEventListener("click", () => {
-  if (!reticle.getAttribute("visible")) return;
-
-  box.setAttribute("visible", true);
-  box.setAttribute("position", reticle.getAttribute("position"));
-});
-</script>
-
-</body>
+    <div id="overlay">
+      Overlay
+    </div>
+  </body>
 </html>
