@@ -1,11 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WebXR AR GLB Placement</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+  body { margin: 0; overflow: hidden; }
+</style>
+</head>
 
+<body>
 
 <script type="module">
 
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import { ARButton } from 'https://unpkg.com/three@0.160.0/examples/jsm/webxr/ARButton.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-
 
 let camera, scene, renderer;
 let controller;
@@ -14,9 +24,6 @@ let model;
 init();
 
 function init() {
-
-    const container = document.createElement('div');
-    document.body.appendChild(container);
 
     scene = new THREE.Scene();
 
@@ -36,33 +43,48 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.xr.enabled = true;
     renderer.setAnimationLoop(animate);
-    container.appendChild(renderer.domElement);
+    document.body.appendChild(renderer.domElement);
 
-    document.body.appendChild(ARButton.createButton(renderer));
+    // AR Button with required features
+    document.body.appendChild(
+        ARButton.createButton(renderer, {
+            requiredFeatures: ['hit-test']
+        })
+    );
 
     // Load GLB model
     const loader = new GLTFLoader();
-    loader.load('model.glb', function (gltf) {
-        model = gltf.scene;
-        model.scale.set(0.2, 0.2, 0.2);  // Adjust scale if needed
-    });
+    loader.load(
+        'model.glb',
+        function (gltf) {
+            model = gltf.scene;
+            model.scale.set(0.5, 0.5, 0.5); // Adjust size if needed
+        },
+        undefined,
+        function (error) {
+            console.error("Error loading model:", error);
+        }
+    );
 
-    function onSelect() {
-
-        if (!model) return;
-
-        const clone = model.clone();
-        clone.position.set(0, 0, -0.5).applyMatrix4(controller.matrixWorld);
-        clone.quaternion.setFromRotationMatrix(controller.matrixWorld);
-
-        scene.add(clone);
-    }
-
+    // Controller for tap placement
     controller = renderer.xr.getController(0);
     controller.addEventListener('select', onSelect);
     scene.add(controller);
 
     window.addEventListener('resize', onWindowResize);
+}
+
+function onSelect() {
+
+    if (!model) return;
+
+    const clone = model.clone(true);
+
+    // Place 0.5 meters in front of camera
+    clone.position.set(0, 0, -0.5).applyMatrix4(controller.matrixWorld);
+    clone.quaternion.setFromRotationMatrix(controller.matrixWorld);
+
+    scene.add(clone);
 }
 
 function onWindowResize() {
@@ -76,3 +98,6 @@ function animate() {
 }
 
 </script>
+
+</body>
+</html>
