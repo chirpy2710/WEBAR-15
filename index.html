@@ -1,93 +1,78 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>WebXR GLB Placement</title>
 
-  <!-- Latest A-Frame -->
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 
-  <script>
-    AFRAME.registerComponent('ar-hit-test', {
-      init: function () {
-        this.hitTestSource = null;
-        this.viewerSpace = null;
-        this.refSpace = null;
-        this.modelPlaced = false;
+<script type="module">
 
-        const scene = this.el.sceneEl;
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+import { ARButton } from 'https://unpkg.com/three@0.160.0/examples/jsm/webxr/ARButton.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 
-        scene.renderer.xr.addEventListener('sessionstart', async () => {
-          const session = scene.renderer.xr.getSession();
 
-          this.viewerSpace = await session.requestReferenceSpace('viewer');
-          this.refSpace = await session.requestReferenceSpace('local');
+let camera, scene, renderer;
+let controller;
+let model;
 
-          this.hitTestSource = await session.requestHitTestSource({
-            space: this.viewerSpace
-          });
+init();
 
-          session.addEventListener('select', () => {
-            if (!this.currentPosition || this.modelPlaced) return;
+function init() {
 
-            const model = document.getElementById("model");
-            model.setAttribute("position", this.currentPosition);
-            model.setAttribute("visible", true);
-            this.modelPlaced = true;
-          });
-        });
-      },
+    const container = document.createElement('div');
+    document.body.appendChild(container);
 
-      tick: function () {
-        const scene = this.el.sceneEl;
-        if (!scene.is('ar-mode')) return;
-        if (!this.hitTestSource) return;
+    scene = new THREE.Scene();
 
-        const frame = scene.frame;
-        const hitTestResults = frame.getHitTestResults(this.hitTestSource);
+    camera = new THREE.PerspectiveCamera(
+        70,
+        window.innerWidth / window.innerHeight,
+        0.01,
+        20
+    );
 
-        if (hitTestResults.length > 0) {
-          const pose = hitTestResults[0].getPose(this.refSpace);
-          const matrix = new THREE.Matrix4().fromArray(pose.transform.matrix);
+    const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 3);
+    light.position.set(0.5, 1, 0.25);
+    scene.add(light);
 
-          const position = new THREE.Vector3();
-          position.setFromMatrixPosition(matrix);
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    renderer.setAnimationLoop(animate);
+    container.appendChild(renderer.domElement);
 
-          this.currentPosition = position;
-        }
-      }
+    document.body.appendChild(ARButton.createButton(renderer));
+
+    // Load GLB model
+    const loader = new GLTFLoader();
+    loader.load('model.glb', function (gltf) {
+        model = gltf.scene;
+        model.scale.set(0.2, 0.2, 0.2);  // Adjust scale if needed
     });
-  </script>
 
-  <style>
-    body { margin:0; overflow:hidden; }
-  </style>
-</head>
+    function onSelect() {
 
-<body>
+        if (!model) return;
 
-<a-scene
-  xr-mode-ui="enabled: true"
-  webxr="requiredFeatures: hit-test, local-floor"
-  renderer="colorManagement: true;"
-  background="transparent: true"
-  ar-hit-test>
+        const clone = model.clone();
+        clone.position.set(0, 0, -0.5).applyMatrix4(controller.matrixWorld);
+        clone.quaternion.setFromRotationMatrix(controller.matrixWorld);
 
-  <a-assets>
-    <a-asset-item id="myModel" src="model.glb"></a-asset-item>
-  </a-assets>
+        scene.add(clone);
+    }
 
-  <a-entity camera></a-entity>
+    controller = renderer.xr.getController(0);
+    controller.addEventListener('select', onSelect);
+    scene.add(controller);
 
-  <!-- Hidden model -->
-  <a-entity
-    id="model"
-    gltf-model="#myModel"
-    scale="0.2 0.2 0.2"
-    visible="false">
-  </a-entity>
+    window.addEventListener('resize', onWindowResize);
+}
 
-</a-scene>
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
 
-</body>
-</html>
+function animate() {
+    renderer.render(scene, camera);
+}
+
+</script>
