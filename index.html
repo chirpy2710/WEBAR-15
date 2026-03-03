@@ -1,128 +1,99 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>AFrame WebXR AR - Scale Model</title>
+  <meta charset="utf-8">
+  <title>MindAR Image Tracking - Touch Scale</title>
 
-<!-- A-Frame CDN -->
-<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <!-- A-Frame CDN -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 
-<style>
-body { margin:0; overflow:hidden; }
+  <!-- MindAR CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
 
-/* Mobile Buttons */
-#ui {
-  position: fixed;
-  bottom: 20px;
-  width: 100%;
-  text-align: center;
-  z-index: 999;
-}
-
-button {
-  padding: 12px 20px;
-  font-size: 18px;
-  margin: 5px;
-  border: none;
-  border-radius: 8px;
-  background: #2196F3;
-  color: white;
-}
-</style>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+  </style>
 </head>
 
 <body>
 
 <a-scene
-  vr-mode-ui="enabled: false"
-  renderer="logarithmicDepthBuffer: true;"
-  webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay; overlayElement: #ui"
+  mindar-image="imageTargetSrc: new.mind;"
+  vr-mode-ui="false"
+  device-orientation-permission-ui="false"
 >
 
-  <!-- Camera -->
-  <a-camera position="0 1.6 0"></a-camera>
+  <!-- Assets -->
+  <a-assets>
+    <a-asset-item id="model1" src="model.glb"></a-asset-item>
+    <a-asset-item id="model2" src="Nike.glb"></a-asset-item>
+  </a-assets>
 
-  <!-- Reticle -->
-  <a-entity id="reticle"
-            geometry="primitive: ring; radiusInner: 0.05; radiusOuter: 0.07"
-            material="color: green; shader: flat"
-            rotation="-90 0 0"
-            visible="false">
+  <!-- Camera -->
+  <a-camera position="0 0 0" look-controls="false"></a-camera>
+
+  <!-- Target 1 -->
+  <a-entity mindar-image-target="targetIndex: 0">
+    <a-entity
+      id="m1"
+      gltf-model="#model1"
+      rotation="90 0 0"
+      scale="0.15 0.15 0.15"
+      pinch-scale>
+    </a-entity>
   </a-entity>
 
-  <!-- GLB Model -->
-  <a-entity id="model"
-            gltf-model="url(Nike.glb)"
-            visible="false"
-            scale="0.3 0.3 0.3">
+  <!-- Target 2 -->
+  <a-entity mindar-image-target="targetIndex: 1">
+    <a-entity
+      id="m2"
+      gltf-model="#model2"
+      rotation="90 0 0"
+      scale="4 4 4"
+      pinch-scale>
+    </a-entity>
   </a-entity>
 
 </a-scene>
 
-<!-- Mobile UI Buttons -->
-<div id="ui">
-  <button onclick="placeModel()">Place Model</button>
-  <button onclick="scaleUp()">Scale +</button>
-  <button onclick="scaleDown()">Scale -</button>
-</div>
-
 <script>
-let scene = document.querySelector("a-scene");
-let model = document.querySelector("#model");
-let reticle = document.querySelector("#reticle");
-let currentScale = 0.3;
+// Custom pinch-to-scale component
+AFRAME.registerComponent("pinch-scale", {
+  init: function () {
+    this.scale = this.el.object3D.scale.x;
+    this.startDistance = 0;
 
-scene.addEventListener("enter-vr", async () => {
+    const sceneEl = this.el.sceneEl;
 
-  const xrSession = scene.renderer.xr.getSession();
-  const viewerSpace = await xrSession.requestReferenceSpace("viewer");
-  const hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
+    sceneEl.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 2) {
+        this.startDistance = this.getDistance(e.touches);
+      }
+    });
 
-  const referenceSpace = await xrSession.requestReferenceSpace("local");
+    sceneEl.addEventListener("touchmove", (e) => {
+      if (e.touches.length === 2) {
+        const newDistance = this.getDistance(e.touches);
+        const scaleFactor = newDistance / this.startDistance;
 
-  xrSession.requestAnimationFrame(function hitTest(time, frame) {
+        this.scale *= scaleFactor;
+        this.scale = Math.max(0.05, Math.min(this.scale, 10));
 
-    const hitTestResults = frame.getHitTestResults(hitTestSource);
+        this.el.object3D.scale.set(this.scale, this.scale, this.scale);
+        this.startDistance = newDistance;
+      }
+    });
+  },
 
-    if (hitTestResults.length > 0) {
-
-      const hit = hitTestResults[0];
-      const pose = hit.getPose(referenceSpace);
-
-      reticle.setAttribute("visible", true);
-      reticle.setAttribute("position", {
-        x: pose.transform.position.x,
-        y: pose.transform.position.y,
-        z: pose.transform.position.z
-      });
-
-    }
-
-    xrSession.requestAnimationFrame(hitTest);
-  });
-
+  getDistance: function (touches) {
+    const dx = touches[0].pageX - touches[1].pageX;
+    const dy = touches[0].pageY - touches[1].pageY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
 });
-
-/* Place Model */
-function placeModel(){
-  if (!reticle.getAttribute("visible")) return;
-
-  model.setAttribute("position", reticle.getAttribute("position"));
-  model.setAttribute("visible", true);
-}
-
-/* Scale Up */
-function scaleUp(){
-  currentScale += 0.1;
-  model.setAttribute("scale", `${currentScale} ${currentScale} ${currentScale}`);
-}
-
-/* Scale Down */
-function scaleDown(){
-  currentScale -= 0.1;
-  if(currentScale < 0.1) currentScale = 0.1;
-  model.setAttribute("scale", `${currentScale} ${currentScale} ${currentScale}`);
-}
 </script>
 
 </body>
