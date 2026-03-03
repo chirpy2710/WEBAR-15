@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>MindAR Image Tracking - Touch Scale</title>
+  <title>MindAR Image Tracking - Fixed Scale</title>
 
   <!-- A-Frame CDN -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -24,7 +24,12 @@
   mindar-image="imageTargetSrc: new.mind;"
   vr-mode-ui="false"
   device-orientation-permission-ui="false"
+  renderer="colorManagement: true; physicallyCorrectLights: true"
 >
+
+  <!-- LIGHTS (important to see model clearly) -->
+  <a-entity light="type: ambient; intensity: 1"></a-entity>
+  <a-entity light="type: directional; intensity: 1" position="0 1 1"></a-entity>
 
   <!-- Assets -->
   <a-assets>
@@ -41,7 +46,7 @@
       id="m1"
       gltf-model="#model1"
       rotation="90 0 0"
-      scale="0.15 0.15 0.15"
+      scale="1 1 1"
       pinch-scale>
     </a-entity>
   </a-entity>
@@ -52,7 +57,7 @@
       id="m2"
       gltf-model="#model2"
       rotation="90 0 0"
-      scale="4 4 4"
+      scale="2 2 2"
       pinch-scale>
     </a-entity>
   </a-entity>
@@ -60,11 +65,11 @@
 </a-scene>
 
 <script>
-// Custom pinch-to-scale component
 AFRAME.registerComponent("pinch-scale", {
   init: function () {
-    this.scale = this.el.object3D.scale.x;
-    this.startDistance = 0;
+    this.initialScale = this.el.object3D.scale.clone();
+    this.startDistance = null;
+    this.currentScale = this.initialScale.x;
 
     const sceneEl = this.el.sceneEl;
 
@@ -75,16 +80,22 @@ AFRAME.registerComponent("pinch-scale", {
     });
 
     sceneEl.addEventListener("touchmove", (e) => {
-      if (e.touches.length === 2) {
+      if (e.touches.length === 2 && this.startDistance) {
         const newDistance = this.getDistance(e.touches);
-        const scaleFactor = newDistance / this.startDistance;
+        let scaleFactor = newDistance / this.startDistance;
 
-        this.scale *= scaleFactor;
-        this.scale = Math.max(0.05, Math.min(this.scale, 10));
+        let newScale = this.currentScale * scaleFactor;
 
-        this.el.object3D.scale.set(this.scale, this.scale, this.scale);
-        this.startDistance = newDistance;
+        // LIMIT SCALE RANGE (important)
+        newScale = Math.max(0.3, Math.min(newScale, 8));
+
+        this.el.object3D.scale.set(newScale, newScale, newScale);
       }
+    });
+
+    sceneEl.addEventListener("touchend", () => {
+      this.currentScale = this.el.object3D.scale.x;
+      this.startDistance = null;
     });
   },
 
