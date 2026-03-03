@@ -2,52 +2,92 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>WebXR Hit Test Working</title>
+  <title>WebXR GLB Placement</title>
 
+  <!-- Latest A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="./components.js"></script>
+
+  <script>
+    AFRAME.registerComponent('ar-hit-test', {
+      init: function () {
+        this.hitTestSource = null;
+        this.viewerSpace = null;
+        this.refSpace = null;
+        this.modelPlaced = false;
+
+        const scene = this.el.sceneEl;
+
+        scene.renderer.xr.addEventListener('sessionstart', async () => {
+          const session = scene.renderer.xr.getSession();
+
+          this.viewerSpace = await session.requestReferenceSpace('viewer');
+          this.refSpace = await session.requestReferenceSpace('local');
+
+          this.hitTestSource = await session.requestHitTestSource({
+            space: this.viewerSpace
+          });
+
+          session.addEventListener('select', () => {
+            if (!this.currentPosition || this.modelPlaced) return;
+
+            const model = document.getElementById("model");
+            model.setAttribute("position", this.currentPosition);
+            model.setAttribute("visible", true);
+            this.modelPlaced = true;
+          });
+        });
+      },
+
+      tick: function () {
+        const scene = this.el.sceneEl;
+        if (!scene.is('ar-mode')) return;
+        if (!this.hitTestSource) return;
+
+        const frame = scene.frame;
+        const hitTestResults = frame.getHitTestResults(this.hitTestSource);
+
+        if (hitTestResults.length > 0) {
+          const pose = hitTestResults[0].getPose(this.refSpace);
+          const matrix = new THREE.Matrix4().fromArray(pose.transform.matrix);
+
+          const position = new THREE.Vector3();
+          position.setFromMatrixPosition(matrix);
+
+          this.currentPosition = position;
+        }
+      }
+    });
+  </script>
 
   <style>
-    body { margin:0; }
-    #overlay {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      background: white;
-      padding: 10px;
-      z-index: 999;
-    }
+    body { margin:0; overflow:hidden; }
   </style>
 </head>
 
 <body>
-  <a-scene
-    xr-mode-ui="enabled: true"
-    webxr="requiredFeatures: hit-test, local-floor;
-           optionalFeatures: dom-overlay;
-           overlayElement: #overlay"
-    background="transparent: true">
 
-    <a-entity camera></a-entity>
+<a-scene
+  xr-mode-ui="enabled: true"
+  webxr="requiredFeatures: hit-test, local-floor"
+  renderer="colorManagement: true;"
+  background="transparent: true"
+  ar-hit-test>
 
-    <a-box id="box"
-      width="0.1"
-      height="0.1"
-      depth="0.1"
-      color="blue"
-      visible="false">
-    </a-box>
+  <a-assets>
+    <a-asset-item id="myModel" src="model.glb"></a-asset-item>
+  </a-assets>
 
-    <a-entity
-      ar-reticle
-      geometry="primitive: ring; radiusInner: 0.05; radiusOuter: 0.07"
-      material="color: green"
-      rotation="-90 0 0"
-      visible="false">
-    </a-entity>
+  <a-entity camera></a-entity>
 
-  </a-scene>
+  <!-- Hidden model -->
+  <a-entity
+    id="model"
+    gltf-model="#myModel"
+    scale="0.2 0.2 0.2"
+    visible="false">
+  </a-entity>
 
-  <div id="overlay">Tap to place object</div>
+</a-scene>
+
 </body>
 </html>
