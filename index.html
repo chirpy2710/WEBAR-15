@@ -1,25 +1,53 @@
+<!DOCTYPE html>
 <html>
-  <head>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="./components.js"></script>
+<head>
+  <meta charset="utf-8">
+  <title>WebXR Hit Test Working</title>
 
-    <style>
-      #overlay {
-	position: fixed;
-	top: 100px;
-	padding: 10px;
-	z-index: 1001;
-      }
-    </style>
-  </head>
-  <body>
-    <a-scene webxr="requiredFeatures:hit-test; optionalFeatures:dom-overlay; referenceSpaceType:local; overlayElement:#overlay" background="transparent: true"> 
-      <a-box id="box" width="0.1" height="0.1" depth="0.1" color="#0000FF" visible="false">v</a-box>
-      <a-entity ar-reticle geometry="primitive: ring; radiusInner: 0.15; radiusOuter: 0.2" rotation="-90 0 0" visible="false"></a-entity>
-    </a-scene>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="./components.js"></script>
 
-    <div id="overlay">
-      Overlay
-    </div>
-  </body>
+  <style>
+    body { margin:0; }
+    #overlay {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: white;
+      padding: 10px;
+      z-index: 999;
+    }
+  </style>
+</head>
+
+<body>
+  <a-scene
+    xr-mode-ui="enabled: true"
+    webxr="requiredFeatures: hit-test, local-floor;
+           optionalFeatures: dom-overlay;
+           overlayElement: #overlay"
+    background="transparent: true">
+
+    <a-entity camera></a-entity>
+
+    <a-box id="box"
+      width="0.1"
+      height="0.1"
+      depth="0.1"
+      color="blue"
+      visible="false">
+    </a-box>
+
+    <a-entity
+      ar-reticle
+      geometry="primitive: ring; radiusInner: 0.05; radiusOuter: 0.07"
+      material="color: green"
+      rotation="-90 0 0"
+      visible="false">
+    </a-entity>
+
+  </a-scene>
+
+  <div id="overlay">Tap to place object</div>
+</body>
 </html>
