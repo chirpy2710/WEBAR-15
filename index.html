@@ -2,11 +2,11 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Working WebXR Plane AR</title>
+  <title>WebXR Plane AR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Only ONE A-Frame -->
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <!-- Use latest stable -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
   <style>
     body { margin:0; overflow:hidden; }
@@ -17,22 +17,22 @@
 
 <a-scene
   vr-mode-ui="enabled: true"
-  renderer="logarithmicDepthBuffer: true;"
-  webxr="requiredFeatures: hit-test, local-floor">
+  webxr="requiredFeatures: hit-test, local-floor"
+  renderer="colorManagement: true; logarithmicDepthBuffer: true">
 
   <a-camera></a-camera>
 
   <!-- Reticle -->
   <a-entity id="reticle"
     geometry="primitive:ring; radiusInner:0.05; radiusOuter:0.06"
-    material="color:green"
+    material="color:green; shader:flat"
     rotation="-90 0 0"
     visible="false">
   </a-entity>
 
-  <!-- Box -->
+  <!-- Model (Test box first) -->
   <a-box id="box"
-    color="blue"
+    color="#4CC3D9"
     depth="0.3"
     height="0.3"
     width="0.3"
@@ -42,12 +42,12 @@
 </a-scene>
 
 <script>
-const scene = document.querySelector('a-scene');
-const reticle = document.querySelector('#reticle');
-const box = document.querySelector('#box');
+const scene = document.querySelector("a-scene");
+const reticle = document.querySelector("#reticle");
+const box = document.querySelector("#box");
 
 let hitTestSource = null;
-let refSpace = null;
+let referenceSpace = null;
 
 scene.addEventListener("enter-vr", async () => {
 
@@ -56,7 +56,8 @@ scene.addEventListener("enter-vr", async () => {
   const session = scene.renderer.xr.getSession();
 
   const viewerSpace = await session.requestReferenceSpace("viewer");
-  refSpace = await session.requestReferenceSpace("local-floor");
+  referenceSpace = await session.requestReferenceSpace("local-floor");
+
   hitTestSource = await session.requestHitTestSource({
     space: viewerSpace
   });
@@ -65,7 +66,6 @@ scene.addEventListener("enter-vr", async () => {
 });
 
 function onXRFrame(t, frame) {
-
   const session = frame.session;
   session.requestAnimationFrame(onXRFrame);
 
@@ -73,7 +73,7 @@ function onXRFrame(t, frame) {
 
   if (hitTestResults.length > 0) {
     const hit = hitTestResults[0];
-    const pose = hit.getPose(refSpace);
+    const pose = hit.getPose(referenceSpace);
 
     reticle.setAttribute("visible", true);
     reticle.setAttribute("position", {
