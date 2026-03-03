@@ -1,19 +1,129 @@
 <!DOCTYPE html>
 <html>
 <head>
-<!-- Include A-Frame -->
-<script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-<!-- Include AR.js for A-Frame -->
-<script src="https://cdn.jsdelivr.net/gh/jeromeetienne/ar.js/aframe/build/aframe-ar.min.js"></script>
+<meta charset="utf-8">
+<title>AFrame WebXR AR - Scale Model</title>
+
+<!-- A-Frame CDN -->
+<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+
+<style>
+body { margin:0; overflow:hidden; }
+
+/* Mobile Buttons */
+#ui {
+  position: fixed;
+  bottom: 20px;
+  width: 100%;
+  text-align: center;
+  z-index: 999;
+}
+
+button {
+  padding: 12px 20px;
+  font-size: 18px;
+  margin: 5px;
+  border: none;
+  border-radius: 8px;
+  background: #2196F3;
+  color: white;
+}
+</style>
 </head>
-<body style="margin: 0px; overflow: hidden;">
-<a-scene embedded arjs>
-<!-- Marker -->
-<a-marker type="pattern" url="pattern-letterA.patt">
-<a-box position="0 0.5 0" material="opacity: 0.5;"></a-box>
-<a-cylinder color="green" height="1.0" radius="0.5" position="1 0.5 0"></a-cylinder>
-</a-marker>
-<!-- Camera -->
-<a-entity camera></a-entity>
+
+<body>
+
+<a-scene
+  vr-mode-ui="enabled: false"
+  renderer="logarithmicDepthBuffer: true;"
+  webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay; overlayElement: #ui"
+>
+
+  <!-- Camera -->
+  <a-camera position="0 1.6 0"></a-camera>
+
+  <!-- Reticle -->
+  <a-entity id="reticle"
+            geometry="primitive: ring; radiusInner: 0.05; radiusOuter: 0.07"
+            material="color: green; shader: flat"
+            rotation="-90 0 0"
+            visible="false">
+  </a-entity>
+
+  <!-- GLB Model -->
+  <a-entity id="model"
+            gltf-model="url(Nike.glb)"
+            visible="false"
+            scale="0.3 0.3 0.3">
+  </a-entity>
+
 </a-scene>
+
+<!-- Mobile UI Buttons -->
+<div id="ui">
+  <button onclick="placeModel()">Place Model</button>
+  <button onclick="scaleUp()">Scale +</button>
+  <button onclick="scaleDown()">Scale -</button>
+</div>
+
+<script>
+let scene = document.querySelector("a-scene");
+let model = document.querySelector("#model");
+let reticle = document.querySelector("#reticle");
+let currentScale = 0.3;
+
+scene.addEventListener("enter-vr", async () => {
+
+  const xrSession = scene.renderer.xr.getSession();
+  const viewerSpace = await xrSession.requestReferenceSpace("viewer");
+  const hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
+
+  const referenceSpace = await xrSession.requestReferenceSpace("local");
+
+  xrSession.requestAnimationFrame(function hitTest(time, frame) {
+
+    const hitTestResults = frame.getHitTestResults(hitTestSource);
+
+    if (hitTestResults.length > 0) {
+
+      const hit = hitTestResults[0];
+      const pose = hit.getPose(referenceSpace);
+
+      reticle.setAttribute("visible", true);
+      reticle.setAttribute("position", {
+        x: pose.transform.position.x,
+        y: pose.transform.position.y,
+        z: pose.transform.position.z
+      });
+
+    }
+
+    xrSession.requestAnimationFrame(hitTest);
+  });
+
+});
+
+/* Place Model */
+function placeModel(){
+  if (!reticle.getAttribute("visible")) return;
+
+  model.setAttribute("position", reticle.getAttribute("position"));
+  model.setAttribute("visible", true);
+}
+
+/* Scale Up */
+function scaleUp(){
+  currentScale += 0.1;
+  model.setAttribute("scale", `${currentScale} ${currentScale} ${currentScale}`);
+}
+
+/* Scale Down */
+function scaleDown(){
+  currentScale -= 0.1;
+  if(currentScale < 0.1) currentScale = 0.1;
+  model.setAttribute("scale", `${currentScale} ${currentScale} ${currentScale}`);
+}
+</script>
+
 </body>
+</html>
