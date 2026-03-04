@@ -2,20 +2,24 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>WebXR GLB Fixed</title>
+  <title>WebXR AR Astronaut</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="./components.js"></script>
+  <script src="components.js"></script>
 
   <style>
+    body { margin: 0; overflow: hidden; }
+
     #overlay {
       position: fixed;
-      top: 100px;
+      top: 20px;
       left: 20px;
-      padding: 10px;
       z-index: 1001;
       background: rgba(0,0,0,0.6);
       color: white;
+      padding: 10px;
+      border-radius: 8px;
+      font-family: sans-serif;
     }
   </style>
 </head>
@@ -23,31 +27,26 @@
 <body>
 
 <a-scene
-  webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay; referenceSpaceType: local; overlayElement:#overlay"
+  webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay; referenceSpaceType: local; overlayElement: #overlay"
+  vr-mode-ui="enabled: false"
   renderer="colorManagement: true"
   background="transparent: true">
 
-  <!-- 🔥 NO a-assets -->
+  <a-entity id="box" visible="false"></a-entity>
 
-  <!-- Load GLB directly -->
-  <a-entity id="box"
-            gltf-model="Nike.glb"
-            scale="0.05 0.05 0.05"
-            visible="false">
-  </a-entity>
-
-  <a-entity ar-reticle
-            geometry="primitive: ring; radiusInner: 0.15; radiusOuter: 0.2"
-            material="color: green"
-            rotation="-90 0 0"
-            visible="false">
+  <a-entity
+    ar-reticle
+    geometry="primitive: ring; radiusInner: 0.12; radiusOuter: 0.15"
+    material="color: green"
+    rotation="-90 0 0"
+    visible="false">
   </a-entity>
 
 </a-scene>
 
 <div id="overlay">
   Move phone to detect surface<br>
-  Tap to place model
+  Tap to place Astronaut
 </div>
 
 </body>
