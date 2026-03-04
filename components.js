@@ -1,50 +1,45 @@
 AFRAME.registerComponent('ar-reticle', {
+
   init: function () {
+
     this.xrHitTestSource = null;
     this.viewerSpace = null;
     this.refSpace = null;
 
     const sceneEl = this.el.sceneEl;
     const reticle = this.el;
-    const model = document.getElementById('box');
 
     sceneEl.renderer.xr.addEventListener('sessionstart', async () => {
 
       const session = sceneEl.renderer.xr.getSession();
 
-      // Create viewer space
       this.viewerSpace = await session.requestReferenceSpace('viewer');
 
-      // Create hit test source
       this.xrHitTestSource = await session.requestHitTestSource({
         space: this.viewerSpace
       });
 
-      // Create local reference space
       this.refSpace = await session.requestReferenceSpace('local');
 
-      console.log("AR Session Started");
-
-      // 🔥 Tap to place model
       session.addEventListener('select', () => {
 
         if (!reticle.getAttribute('visible')) return;
 
-        const pos = reticle.object3D.position;
+        const position = reticle.object3D.position;
+        const model = document.getElementById('box');
 
-        model.object3D.position.copy(pos);
-        model.object3D.visible = true;
+        model.setAttribute(
+          'gltf-model',
+          'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
+        );
 
-        console.log("Model placed");
+        model.setAttribute('scale', '0.5 0.5 0.5');
+        model.object3D.position.copy(position);
+        model.setAttribute('visible', true);
       });
+
     });
 
-    sceneEl.renderer.xr.addEventListener('sessionend', () => {
-      this.xrHitTestSource = null;
-      this.viewerSpace = null;
-      this.refSpace = null;
-      console.log("AR Session Ended");
-    });
   },
 
   tick: function () {
@@ -73,6 +68,7 @@ AFRAME.registerComponent('ar-reticle', {
       this.el.setAttribute('visible', true);
 
     } else {
+
       this.el.setAttribute('visible', false);
     }
   }
