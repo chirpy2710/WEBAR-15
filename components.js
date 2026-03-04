@@ -8,41 +8,42 @@ AFRAME.registerComponent('ar-reticle', {
     const reticle = this.el;
     const model = document.getElementById('box');
 
-    let modelReady = false;
-
-    // Wait for GLB to load
-    model.addEventListener('model-loaded', function () {
-      modelReady = true;
-      console.log("Model Loaded");
-    });
-
     sceneEl.renderer.xr.addEventListener('sessionstart', async () => {
 
       const session = sceneEl.renderer.xr.getSession();
 
-      session.addEventListener('select', () => {
-
-        if (!modelReady) return;
-        if (!reticle.getAttribute('visible')) return;
-
-        const pos = reticle.object3D.position;
-
-        model.object3D.position.set(pos.x, pos.y, pos.z);
-        model.object3D.visible = true;
-      });
-
+      // Create viewer space
       this.viewerSpace = await session.requestReferenceSpace('viewer');
+
+      // Create hit test source
       this.xrHitTestSource = await session.requestHitTestSource({
         space: this.viewerSpace
       });
 
+      // Create local reference space
       this.refSpace = await session.requestReferenceSpace('local');
+
+      console.log("AR Session Started");
+
+      // 🔥 Tap to place model
+      session.addEventListener('select', () => {
+
+        if (!reticle.getAttribute('visible')) return;
+
+        const pos = reticle.object3D.position;
+
+        model.object3D.position.copy(pos);
+        model.object3D.visible = true;
+
+        console.log("Model placed");
+      });
     });
 
     sceneEl.renderer.xr.addEventListener('sessionend', () => {
       this.xrHitTestSource = null;
       this.viewerSpace = null;
       this.refSpace = null;
+      console.log("AR Session Ended");
     });
   },
 
@@ -54,11 +55,14 @@ AFRAME.registerComponent('ar-reticle', {
     if (!this.xrHitTestSource || !this.refSpace) return;
 
     const frame = sceneEl.frame;
+    if (!frame) return;
+
     const hitTestResults = frame.getHitTestResults(this.xrHitTestSource);
 
     if (hitTestResults.length > 0) {
 
       const pose = hitTestResults[0].getPose(this.refSpace);
+
       const matrix = new THREE.Matrix4();
       matrix.fromArray(pose.transform.matrix);
 
