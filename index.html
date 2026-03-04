@@ -1,102 +1,142 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="utf-8">
-<title>WebXR AR GLB Placement</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<style>
-  body { margin: 0; overflow: hidden; }
-</style>
+  <meta charset="utf-8">
+  <title>WebXR AR GLB Placement</title>
+
+  <!-- Latest A-Frame -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #overlay {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      padding: 10px 15px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border-radius: 8px;
+      z-index: 1001;
+      font-family: sans-serif;
+    }
+  </style>
 </head>
 
 <body>
 
-<script type="module">
+<div id="overlay">
+  Move phone to detect surface<br>
+  Tap screen to place model
+</div>
 
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { ARButton } from 'https://unpkg.com/three@0.160.0/examples/jsm/webxr/ARButton.js';
-import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+<a-scene
+  renderer="colorManagement: true;"
+  webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay; referenceSpaceType: local; overlayElement: #overlay"
+  background="transparent: true">
 
-let camera, scene, renderer;
-let controller;
-let model;
+  <!-- Load GLB -->
+  <a-assets>
+    <a-asset-item id="model" src="model.glb"></a-asset-item>
+  </a-assets>
 
-init();
+  <!-- Lighting -->
+  <a-light type="ambient" intensity="1"></a-light>
+  <a-light type="directional" position="0 2 1" intensity="0.8"></a-light>
 
-function init() {
+  <!-- GLB Model (Hidden Initially) -->
+  <a-entity
+    id="modelEntity"
+    gltf-model="#model"
+    scale="0.2 0.2 0.2"
+    visible="false">
+  </a-entity>
 
-    scene = new THREE.Scene();
+  <!-- Reticle -->
+  <a-entity
+    id="reticle"
+    geometry="primitive: ring; radiusInner: 0.12; radiusOuter: 0.15"
+    material="color: green"
+    rotation="-90 0 0"
+    visible="false">
+  </a-entity>
 
-    camera = new THREE.PerspectiveCamera(
-        70,
-        window.innerWidth / window.innerHeight,
-        0.01,
-        20
-    );
+</a-scene>
 
-    const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 3);
-    light.position.set(0.5, 1, 0.25);
-    scene.add(light);
+<script>
+AFRAME.registerComponent('ar-hit-test', {
+  init: function () {
+    this.xrHitTestSource = null;
+    this.viewerSpace = null;
+    this.refSpace = null;
 
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.xr.enabled = true;
-    renderer.setAnimationLoop(animate);
-    document.body.appendChild(renderer.domElement);
+    const sceneEl = this.el.sceneEl;
+    const reticle = document.getElementById('reticle');
+    const model = document.getElementById('modelEntity');
 
-    // AR Button with required features
-    document.body.appendChild(
-        ARButton.createButton(renderer, {
-            requiredFeatures: ['hit-test']
-        })
-    );
+    sceneEl.renderer.xr.addEventListener('sessionstart', async () => {
+      const session = sceneEl.renderer.xr.getSession();
 
-    // Load GLB model
-    const loader = new GLTFLoader();
-    loader.load(
-        'model.glb',
-        function (gltf) {
-            model = gltf.scene;
-            model.scale.set(0.5, 0.5, 0.5); // Adjust size if needed
-        },
-        undefined,
-        function (error) {
-            console.error("Error loading model:", error);
-        }
-    );
+      // When user taps screen
+      session.addEventListener('select', () => {
+        if (!reticle.getAttribute('visible')) return;
 
-    // Controller for tap placement
-    controller = renderer.xr.getController(0);
-    controller.addEventListener('select', onSelect);
-    scene.add(controller);
+        const pos = reticle.object3D.position;
 
-    window.addEventListener('resize', onWindowResize);
-}
+        model.setAttribute('position', {
+          x: pos.x,
+          y: pos.y,
+          z: pos.z
+        });
 
-function onSelect() {
+        model.setAttribute('visible', true);
+      });
 
-    if (!model) return;
+      // Create hit test source
+      this.viewerSpace = await session.requestReferenceSpace('viewer');
+      this.xrHitTestSource = await session.requestHitTestSource({
+        space: this.viewerSpace
+      });
 
-    const clone = model.clone(true);
+      this.refSpace = await session.requestReferenceSpace('local');
+    });
 
-    // Place 0.5 meters in front of camera
-    clone.position.set(0, 0, -0.5).applyMatrix4(controller.matrixWorld);
-    clone.quaternion.setFromRotationMatrix(controller.matrixWorld);
+    sceneEl.renderer.xr.addEventListener('sessionend', () => {
+      this.viewerSpace = null;
+      this.refSpace = null;
+      this.xrHitTestSource = null;
+    });
+  },
 
-    scene.add(clone);
-}
+  tick: function () {
+    const sceneEl = this.el.sceneEl;
+    const reticle = document.getElementById('reticle');
 
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
+    if (!sceneEl.is('ar-mode')) return;
+    if (!this.xrHitTestSource || !this.refSpace) return;
 
-function animate() {
-    renderer.render(scene, camera);
-}
+    const frame = sceneEl.frame;
+    const hitTestResults = frame.getHitTestResults(this.xrHitTestSource);
 
+    if (hitTestResults.length > 0) {
+      const pose = hitTestResults[0].getPose(this.refSpace);
+
+      const matrix = new THREE.Matrix4();
+      matrix.fromArray(pose.transform.matrix);
+
+      const position = new THREE.Vector3();
+      position.setFromMatrixPosition(matrix);
+
+      reticle.setAttribute('position', position);
+      reticle.setAttribute('visible', true);
+    } else {
+      reticle.setAttribute('visible', false);
+    }
+  }
+});
+
+// Attach component to scene
+document.querySelector('a-scene').setAttribute('ar-hit-test', '');
 </script>
 
 </body>
