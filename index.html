@@ -2,9 +2,8 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>WebXR GLB Placement</title>
+  <title>WebXR GLB Working</title>
 
-  <!-- Use 1.5.0 -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="./components.js"></script>
 
@@ -17,8 +16,6 @@
       z-index: 1001;
       background: rgba(0,0,0,0.6);
       color: white;
-      border-radius: 6px;
-      font-family: sans-serif;
     }
   </style>
 </head>
@@ -26,16 +23,15 @@
 <body>
 
 <a-scene
-  renderer="colorManagement: true;"
   webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay; referenceSpaceType: local; overlayElement:#overlay"
+  renderer="colorManagement: true"
   background="transparent: true">
 
-  <!-- Load GLB -->
   <a-assets>
     <a-asset-item id="nikeModel" src="Nike.glb"></a-asset-item>
   </a-assets>
 
-  <!-- GLB Model (Keep id=box because JS uses it) -->
+  <!-- Model -->
   <a-entity id="box"
             gltf-model="#nikeModel"
             scale="0.05 0.05 0.05"
@@ -54,7 +50,7 @@
 
 <div id="overlay">
   Move phone to detect surface<br>
-  Tap to place Nike model
+  Tap to place model
 </div>
 
 </body>
