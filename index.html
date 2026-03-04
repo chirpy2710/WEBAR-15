@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>WebXR AR Astronaut</title>
+  <title>WebXR GLB Fixed Lighting</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="components.js"></script>
@@ -27,13 +27,23 @@
 <body>
 
 <a-scene
-  webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay; referenceSpaceType: local; overlayElement: #overlay"
-  vr-mode-ui="enabled: false"
+  webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay; referenceSpaceType: local; overlayElement:#overlay"
   renderer="colorManagement: true"
+  vr-mode-ui="enabled: false"
   background="transparent: true">
 
-  <a-entity id="box" visible="false"></a-entity>
+  <!-- 🔥 ADD LIGHTS -->
+  <a-light type="ambient" intensity="1.2"></a-light>
+  <a-light type="directional" intensity="1.5" position="1 2 1"></a-light>
 
+  <!-- GLB -->
+  <a-entity id="box"
+            gltf-model="Nike.glb"
+            scale="0.05 0.05 0.05"
+            visible="false">
+  </a-entity>
+
+  <!-- Reticle -->
   <a-entity
     ar-reticle
     geometry="primitive: ring; radiusInner: 0.12; radiusOuter: 0.15"
@@ -46,7 +56,7 @@
 
 <div id="overlay">
   Move phone to detect surface<br>
-  Tap to place Astronaut
+  Tap to place model
 </div>
 
 </body>
