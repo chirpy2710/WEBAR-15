@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>WebXR GLB Working</title>
+  <title>WebXR GLB Fixed</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="./components.js"></script>
@@ -27,18 +27,15 @@
   renderer="colorManagement: true"
   background="transparent: true">
 
-  <a-assets>
-    <a-asset-item id="nikeModel" src="Nike.glb"></a-asset-item>
-  </a-assets>
+  <!-- 🔥 NO a-assets -->
 
-  <!-- Model -->
+  <!-- Load GLB directly -->
   <a-entity id="box"
-            gltf-model="#nikeModel"
+            gltf-model="Nike.glb"
             scale="0.05 0.05 0.05"
             visible="false">
   </a-entity>
 
-  <!-- Reticle -->
   <a-entity ar-reticle
             geometry="primitive: ring; radiusInner: 0.15; radiusOuter: 0.2"
             material="color: green"
