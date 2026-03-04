@@ -8,27 +8,29 @@ AFRAME.registerComponent('ar-reticle', {
     const reticle = this.el;
     const model = document.getElementById('box');
 
+    let modelReady = false;
+
+    // Wait for GLB to load
+    model.addEventListener('model-loaded', function () {
+      modelReady = true;
+      console.log("Model Loaded");
+    });
+
     sceneEl.renderer.xr.addEventListener('sessionstart', async () => {
 
       const session = sceneEl.renderer.xr.getSession();
 
-      // Tap to place
       session.addEventListener('select', () => {
 
+        if (!modelReady) return;
         if (!reticle.getAttribute('visible')) return;
 
         const pos = reticle.object3D.position;
 
-        model.object3D.position.set(
-          pos.x,
-          pos.y,
-          pos.z
-        );
-
+        model.object3D.position.set(pos.x, pos.y, pos.z);
         model.object3D.visible = true;
       });
 
-      // Create hit-test source
       this.viewerSpace = await session.requestReferenceSpace('viewer');
       this.xrHitTestSource = await session.requestHitTestSource({
         space: this.viewerSpace
@@ -57,7 +59,6 @@ AFRAME.registerComponent('ar-reticle', {
     if (hitTestResults.length > 0) {
 
       const pose = hitTestResults[0].getPose(this.refSpace);
-
       const matrix = new THREE.Matrix4();
       matrix.fromArray(pose.transform.matrix);
 
