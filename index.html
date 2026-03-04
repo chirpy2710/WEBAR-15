@@ -1,63 +1,31 @@
-<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>WebXR GLB Fixed Lighting</title>
+  <head>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="./components.js"></script>
+    <style>
+      #overlay {
+        position: fixed;
+        top: 100px;
+        padding: 10px;
+        z-index: 1001;
+      }
+    </style>
+  </head>
+  <body>
+    <a-scene webxr="requiredFeatures:hit-test; optionalFeatures:dom-overlay; referenceSpaceType:local; overlayElement:#overlay" background="transparent: true">
+      
+      <!-- Replace a-box with gltf-model entity -->
+      <a-entity
+        id="box"
+        gltf-model="./model.glb"
+        scale="0.1 0.1 0.1"
+        visible="false">
+      </a-entity>
 
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="components.js"></script>
-
-  <style>
-    body { margin: 0; overflow: hidden; }
-
-    #overlay {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      z-index: 1001;
-      background: rgba(0,0,0,0.6);
-      color: white;
-      padding: 10px;
-      border-radius: 8px;
-      font-family: sans-serif;
-    }
-  </style>
-</head>
-
-<body>
-
-<a-scene
-  webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay; referenceSpaceType: local; overlayElement:#overlay"
-  renderer="colorManagement: true"
-  vr-mode-ui="enabled: false"
-  background="transparent: true">
-
-  <!-- 🔥 ADD LIGHTS -->
-  <a-light type="ambient" intensity="1.2"></a-light>
-  <a-light type="directional" intensity="1.5" position="1 2 1"></a-light>
-
-  <!-- GLB -->
-  <a-entity id="box"
-            gltf-model="Nike.glb"
-            scale="0.05 0.05 0.05"
-            visible="false">
-  </a-entity>
-
-  <!-- Reticle -->
-  <a-entity
-    ar-reticle
-    geometry="primitive: ring; radiusInner: 0.12; radiusOuter: 0.15"
-    material="color: green"
-    rotation="-90 0 0"
-    visible="false">
-  </a-entity>
-
-</a-scene>
-
-<div id="overlay">
-  Move phone to detect surface<br>
-  Tap to place model
-</div>
-
-</body>
+      <a-entity ar-reticle geometry="primitive: ring; radiusInner: 0.15; radiusOuter: 0.2" rotation="-90 0 0" visible="false"></a-entity>
+    </a-scene>
+    <div id="overlay">
+      Overlay
+    </div>
+  </body>
 </html>
